@@ -1,26 +1,24 @@
 <?php
 /**
- * demo_idb.php is both a test page for your IDB shared mysqli connection, and a starting point for 
- * building DB applications using IDB connections
+ * survey_view.php is a page to demonstrate the proof of concept of the 
+ * initial SurveySez objects.
  *
- * @package nmCommon
- * @author Bill Newman <williamnewman@gmail.com>
- * @version 2.09 2011/05/09
- * @link http://www.newmanix.com/
- * @license http://opensource.org/licenses/osl-3.0.php Open Software License ("OSL") v. 3.0
- * @see config_inc.php  
- * @see header_inc.php
- * @see footer_inc.php 
- * @todo none
+ * Objects in this version are the Survey, Question & Answer objects
+ * 
+ * @package SurveySez
+ * @author William Newman
+ * @version 2.12 2015/06/04
+ * @link http://newmanix.com/ 
+ * @license http://www.apache.org/licenses/LICENSE-2.0
+ * @see Question.php
+ * @see Answer.php
+ * @see Response.php
+ * @see Choice.php
  */
-# '../' works for a sub-folder.  use './' for the root
+ 
 require '../inc_0700/config_inc.php'; #provides configuration, pathing, error handling, db credentials
-spl_autoload_register('MyAutoLoader::NamespaceLoader');
-
-$config->titleTag = smartTitle(); #Fills <title> tag. If left empty will fallback to $config->titleTag in config_inc.php
-$config->metaDescription = smartTitle() . ' - ' . $config->metaDescription; 
-
-//END CONFIG AREA ---------------------------------------------------------- 
+spl_autoload_register('MyAutoLoader::NamespaceLoader');//required to load SurveySez namespace objects
+$config->metaRobots = 'no index, no follow';#never index survey pages
 
 # check variable of item passed in - if invalid data, forcibly redirect back to demo_list.php page
 if(isset($_GET['id']) && (int)$_GET['id'] > 0){#proper data must be on querystring
@@ -29,73 +27,38 @@ if(isset($_GET['id']) && (int)$_GET['id'] > 0){#proper data must be on querystri
 	myRedirect(VIRTUAL_PATH . "surveys/index.php");
 }
 
-get_header(); #defaults to header_inc.php
+$mySurvey = new SurveySez\MY_Survey($myID); //MY_Survey extends survey class so methods can be added
+if($mySurvey->isValid)
+{
+	$config->titleTag = "'" . $mySurvey->Title . "' Survey!";
+}else{
+	$config->titleTag = smartTitle(); //use constant 
+}
+#END CONFIG AREA ---------------------------------------------------------- 
+
+get_header(); #defaults to theme header or header_inc.php
 ?>
-<h3 align="center">Survey View</h3>
+<h3><?=$mySurvey->Title;?></h3>
+
 <?php
 
-$mySurvey = new SurveySez\Survey($myID);
-//dumpDie($mySurvey);
-
 if($mySurvey->isValid)
-	{//if the survey exists, show data
-		echo '<p>Survey Title:<b>' . $mySurvey->Title . '</p>';
-		echo $mySurvey->showQuestions();
-		echo responseList($myID);
-}else{//apologize!
-	echo '<div>There appears to be no such survey</div>';
+{ #check to see if we have a valid SurveyID
+	echo '<p class="text-muted">' . $mySurvey->Description . '</p>';
+	echo $mySurvey->showQuestions();
+    echo $mySurvey::responseList($myID);
+}else{
+	echo "Sorry, no such survey!";	
 }
-get_footer(); #defaults to footer_inc.php
 
-function responseList($id)
+get_footer(); #defaults to theme footer or footer_inc.php
+
+/*
+function responseList($myID)
 {
-	$myReturn = '';
-	
-	
-	$sql = "select DateAdded, ResponseID from sm15_responses where SurveyID=$id";
-	
-	#reference images for pager
-	$prev = '<img src="' . VIRTUAL_PATH . 'images/arrow_prev.gif" border="0" />';
-	$next = '<img src="' . VIRTUAL_PATH . 'images/arrow_next.gif" border="0" />';
-
-	# Create instance of new 'pager' class
-	$myPager = new Pager(10,'',$prev,$next,'');
-	$sql = $myPager->loadSQL($sql);  #load SQL, add offset
-
-	# connection comes first in mysqli (improved) function
-	$result = mysqli_query(IDB::conn(),$sql) or die(trigger_error(mysqli_error(IDB::conn()), E_USER_ERROR));
-
-	if(mysqli_num_rows($result) > 0)
-	{#records exist - process
-		if($myPager->showTotal()==1){$itemz = "response";}else{$itemz = "responses";}  //deal with plural
-		$myReturn .= '<div align="center">We have ' . $myPager->showTotal() . ' ' . $itemz . '!</div>';
-		while($row = mysqli_fetch_assoc($result))
-		{# process each row
-			 $myReturn .= '<div align="center"><a href="' . VIRTUAL_PATH . 'surveys/response_view.php?id=' . (int)$row['ResponseID'] . '">' . dbOut($row['DateAdded']) . '</a>';
-			 $myReturn .= '</div>';
-		}
-		$myReturn .= $myPager->showNAV(); # show paging nav, only if enough records	 
-	}else{#no records
-		$myReturn .= "<div align=center>There are currently no surveys.</div>";	
-	}
-	@mysqli_free_result($result);
-		
-	//$myReturn .= $id;
-	
-	return $myReturn;
+   return $myID; 
 }
-
-
-
-
-
-
-
-
-
-
-
-
+*/
 
 
 
